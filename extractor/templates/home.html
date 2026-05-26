@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XML Sitemap Parser</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 30px;
+        }
+
+        input {
+            padding: 10px;
+            width: 350px;
+        }
+
+        button {
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+
+        #status {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+        #results {
+            margin-top: 20px;
+        }
+
+        ul {
+            padding-left: 20px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>Sitemap Extractor</h2>
+
+    <form id="sitemap-form">
+
+        <input placeholder="https://example.com" type="text" id="website-url">
+
+        <button type="submit">
+            Extract
+        </button>
+
+    </form>
+
+    <div id="status"></div>
+
+    <div id="results"></div>
+
+    <script>
+
+        document
+            .getElementById('sitemap-form')
+            .addEventListener(
+                'submit',
+                async function (e) {
+
+                    e.preventDefault();
+
+                    const websiteUrl =
+                        document.getElementById(
+                            'website-url'
+                        ).value;
+
+                    const statusDiv =
+                        document.getElementById(
+                            'status'
+                        );
+
+                    const resultsDiv =
+                        document.getElementById(
+                            'results'
+                        );
+
+                    // Loading state
+                    statusDiv.innerHTML =
+                        'Fetching sitemap URLs...';
+
+                    resultsDiv.innerHTML = '';
+
+                    try {
+
+                        const response = await fetch(
+                            'xml/',
+                            {
+                                method: 'POST',
+
+                                headers: {
+                                    'Content-Type':
+                                        'application/json',
+
+                                    'X-CSRFToken':
+                                        getCSRFToken()
+                                },
+
+                                body: JSON.stringify({
+                                    url: websiteUrl
+                                })
+                            }
+                        );
+
+                        const data =
+                            await response.json();
+
+                        console.log(data);
+
+                        // count
+                        statusDiv.innerHTML = `
+                            Total URLs Found:
+                            ${data.urls.length}
+                        `;
+
+                        // top 10 URLs
+                        let html = `
+                            <h3>Top 10 URLs</h3>
+                            <ul>
+                        `;
+
+                        data.urls
+                            .slice(0, 10)
+                            .forEach(url => {
+
+                                html += `
+                                    <li>
+                                        <a href="${url}"
+                                           target="_blank">
+                                            ${url}
+                                        </a>
+                                    </li>
+                                `;
+                            });
+
+                        html += '</ul>';
+
+                        resultsDiv.innerHTML = html;
+
+                    } catch (error) {
+
+                        statusDiv.innerHTML =
+                            'Something went wrong';
+
+                        console.error(error);
+                    }
+                }
+            );
+
+        function getCSRFToken() {
+
+            return document
+                .cookie
+                .split('; ')
+                .find(row =>
+                    row.startsWith('csrftoken=')
+                )
+                ?.split('=')[1];
+        }
+
+    </script>
+
+</body>
+
+</html>
