@@ -25,34 +25,6 @@ A Django REST API that extracts URLs from XML sitemaps asynchronously using Cele
 * SQLite (Development)
 * Docker (Optional)
 
----
-
-## Project Structure
-
-```text
-project/
-│
-├── sitemap/
-│   ├── settings.py
-│   ├── urls.py
-│   └── celery.py
-│
-├── tools/
-│   └── backlinkGap/
-│       └── sitemap_extractor/
-│           ├── models.py
-│           ├── views.py
-│           ├── services.py
-│           ├── tasks.py
-│           ├── serializers.py
-│           └── urls.py
-│
-├── manage.py
-└── requirements.txt
-```
-
----
-
 ## Installation
 
 ### Clone Repository
