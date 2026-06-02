@@ -46,124 +46,100 @@
     <h2>Sitemap Extractor</h2>
 
     <form id="sitemap-form">
-
         <input placeholder="https://example.com" type="text" id="website-url">
-
-        <button type="submit">
-            Extract
-        </button>
-
+        <button type="submit">Extract</button>
     </form>
 
     <div id="status"></div>
-
     <div id="results"></div>
 
     <script>
 
         document
             .getElementById('sitemap-form')
-            .addEventListener(
-                'submit',
-                async function (e) {
+            .addEventListener('submit', async function (e) {
 
-                    e.preventDefault();
+                e.preventDefault();
 
-                    const websiteUrl =
-                        document.getElementById(
-                            'website-url'
-                        ).value;
+                const websiteUrl = document.getElementById('website-url').value;
+                const statusDiv = document.getElementById('status');
+                const resultsDiv = document.getElementById('results');
 
-                    const statusDiv =
-                        document.getElementById(
-                            'status'
-                        );
+                statusDiv.innerHTML = 'Fetching sitemap URLs...';
+                resultsDiv.innerHTML = '';
 
-                    const resultsDiv =
-                        document.getElementById(
-                            'results'
-                        );
+                try {
 
-                    // Loading state
-                    statusDiv.innerHTML =
-                        'Fetching sitemap URLs...';
+                    const response = await fetch('sitemap-extractor/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCSRFToken()
+                        },
+                        body: JSON.stringify({ url: websiteUrl })
+                    });
 
-                    resultsDiv.innerHTML = '';
+                    const data = await response.json();
 
-                    try {
-
-                        const response = await fetch(
-                            'xml/',
-                            {
-                                method: 'POST',
-
-                                headers: {
-                                    'Content-Type':
-                                        'application/json',
-
-                                    'X-CSRFToken':
-                                        getCSRFToken()
-                                },
-
-                                body: JSON.stringify({
-                                    url: websiteUrl
-                                })
-                            }
-                        );
-
-                        const data =
-                            await response.json();
-
-                        console.log(data);
-
-                        // count
-                        statusDiv.innerHTML = `
-                            Total URLs Found:
-                            ${data.urls.length}
-                        `;
-
-                        // top 10 URLs
-                        let html = `
-                            <h3>Top 10 URLs</h3>
-                            <ul>
-                        `;
-
-                        data.urls
-                            .slice(0, 10)
-                            .forEach(url => {
-
-                                html += `
-                                    <li>
-                                        <a href="${url}"
-                                           target="_blank">
-                                            ${url}
-                                        </a>
-                                    </li>
-                                `;
-                            });
-
-                        html += '</ul>';
-
-                        resultsDiv.innerHTML = html;
-
-                    } catch (error) {
-
-                        statusDiv.innerHTML =
-                            'Something went wrong';
-
-                        console.error(error);
+                    // Stop here on validation errors
+                    if (!response.ok) {
+                        statusDiv.innerHTML = data.url?.[0] || data.detail || 'Invalid input';
+                        return;
                     }
+
+                    statusDiv.innerHTML = 'Processing sitemap...';
+                    checkTaskStatus(data.task_id);
+
+                } catch (error) {
+                    statusDiv.innerHTML = 'Something went wrong';
+                    console.error(error);
                 }
-            );
+            });
+
+
+        async function checkTaskStatus(taskId) {
+
+            const statusDiv = document.getElementById('status');
+            const resultsDiv = document.getElementById('results');
+
+            const interval = setInterval(async () => {
+
+                try {
+
+                    const response = await fetch(`sitemap-task/${taskId}/`);
+                    const data = await response.json();
+
+                    if (data.status === 'SUCCESS') {
+                        clearInterval(interval);
+                        statusDiv.innerHTML = `Total URLs Found: ${data.result.count}`;
+
+                        let html = '<h3>Top 10 URLs</h3><ul>';
+                        data.result.urls.slice(0, 10).forEach(url => {
+                            html += `<li><a href="${url}" target="_blank">${url}</a></li>`;
+                        });
+                        html += '</ul>';
+                        resultsDiv.innerHTML = html;
+                    }
+
+                    if (data.status === 'FAILURE') {
+                        clearInterval(interval);
+                        statusDiv.innerHTML = `Failed: ${data.error || 'Unknown error'}`;
+                    }
+
+                } catch (error) {
+                    clearInterval(interval);
+                    statusDiv.innerHTML = 'Something went wrong while checking status';
+                    console.error(error);
+                }
+
+            }, 2000);
+        }
+
 
         function getCSRFToken() {
-
-            return document
-                .cookie
+            return document.cookie
                 .split('; ')
-                .find(row =>
-                    row.startsWith('csrftoken=')
-                )
+                .find(row => row.startsWith('csrftoken='))
                 ?.split('=')[1];
         }
 

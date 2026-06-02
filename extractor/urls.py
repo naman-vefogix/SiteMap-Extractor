@@ -1,8 +1,10 @@
 from django.urls import path
-from . import views
+from .views import *
 
 
 urlpatterns = [
-    path('', views.HomeView, name='home_view'),
-    path('xml/', views.SitemapExtractorAPIView.as_view(), name='sitemap')
+    path('', HomeView, name='home_view'),
+    path('sitemap-extractor/', Sitemap_ExtractorView.as_view(), name='sitemap'),
+    path('sitemap-task/<str:task_id>/', SitemapTaskStatusView.as_view(), name = 'SitemapTaskStatusView'),
 ]
+
